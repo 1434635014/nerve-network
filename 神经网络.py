@@ -3,9 +3,11 @@ import scipy.special
 import scipy.io as io
 import time
 
+import cv2
 import PIL
 import csv
 import codecs
+import pandas
 
 class neuralNetwork:
     # 初始化函数
@@ -61,19 +63,20 @@ class neuralNetwork:
         
     
 # 输入层节点，隐藏层节点。输出层节点
-is_train = False        # 是否进行训练，否则为直接读取模型
+is_train = False        # 是否进行训练，否则只是对模型进行本地测试
 inputnodes = 784
 hiddennodes = 200       # 隐藏节点数（学习容量）
 outputnodes = 10
 # 世代
-epochs = 1
+epochs = 10
 # 学习率
 learningrate = 0.1
 train_fileurl = './csv/mnist_train.csv'     # ./csv/mnist_100.csv
 test_fileurl = './csv/mnist_test.csv'       # ./csv/mnist_10.csv
 moxing_file_name = './csv/moxing_' + str(epochs)    # 训练模型位置
 size = 2000                                 # 打印间隔（数据个数）
-
+# 本地图片
+imgNum = 0                                  # 图片数字
 
 n = []
 # 创建神经网络对象
@@ -111,47 +114,59 @@ if (is_train):
                 print('训练中：第' + str(num) + '个数据，已耗时：' + str(end - begin) + '秒')
             n.train(inputs, targets)
     print('训练完成')
-# 积分卡
-# 加载测试集
-print("测试中...")
-test_data_file = open(test_fileurl, 'r')
-test_data_list = test_data_file.readlines()
-test_data_file.close()
-scorecard = []
-# a = True
-for record in test_data_list:
-    all_values = record.split(',')
-    correct_label = int(all_values[0])
-    # scale and shift the inputs
-    inputs = (numpy.asfarray(all_values[1:]) / 255.0 * 0.99) + 0.01
-    
-    # if (a):
-    #     print(inputs)
-    #     a = False
-    # 得出结果
-    outputs = n.query(inputs)
-    label = numpy.argmax(outputs)
-    if (label == correct_label):    # 正确
-        scorecard
-        scorecard.append(1)
-    else:                           # 错误
-        scorecard
-        scorecard.append(0)
-# print(scorecard)
-scorecard_array = numpy.asarray(scorecard)
-# 正确率
-rate = scorecard_array.sum() / scorecard_array.size * 100
+    # 积分卡
+    # 加载测试集
+    print("测试集测试中...")
+    test_data_file = open(test_fileurl, 'r')
+    test_data_list = test_data_file.readlines()
+    test_data_file.close()
+    scorecard = []
+    for record in test_data_list:
+        all_values = record.split(',')
+        correct_label = int(all_values[0])
+        # scale and shift the inputs
+        inputs = (numpy.asfarray(all_values[1:]) / 255.0 * 0.99) + 0.01
+        
+        # 得出结果
+        outputs = n.query(inputs)
+        label = numpy.argmax(outputs)
+        if (label == correct_label):    # 正确
+            scorecard
+            scorecard.append(1)
+        else:                           # 错误
+            scorecard
+            scorecard.append(0)
+    # print(scorecard)
+    scorecard_array = numpy.asarray(scorecard)
+    # 正确率
+    rate = scorecard_array.sum() / scorecard_array.size * 100
 
-print ("正确率为 = %.1f" % (rate) + '%')
+    print ("正确率为 = %.1f" % (rate) + '%')
 
-# 如果是训练数据，则写入模型
-if (is_train):
+    # 写入模型
     io.savemat(moxing_file_name, {'wih': n.wih, 'who': n.who})
     print("模型创建成功")
 
-# if (is_train == False):
-#     im = PIL.Image.open("./img/2.jpg")
-#     img = numpy.asarray(im.resize((28, 28), PIL.Image.ANTIALIAS).convert('L')).reshape(28, 28)
-#     # 得出结果
-#     outputs = n.query(img)
-#     print("图片测试结果为" + outputs)
+def ImageToMatrix(filename):
+    # 读取图片
+    im = PIL.Image.open(filename)
+    size = (28, 28)
+    im = im.resize(size, PIL.Image.ANTIALIAS)
+    im = numpy.array(im.convert("L"))
+    imList = numpy.array([])
+    for row in im:
+        rowList = numpy.array([])
+        for i in row:
+            i = 255 - i
+            rowList = numpy.append(rowList, 0 if i < 10 else i)
+        imList = numpy.concatenate((imList, rowList))
+    return imList
+
+if (is_train == False):
+    print("正在识别本地图片...")
+    im = ImageToMatrix("./img/" +str(imgNum)+ ".jpg")
+    img = (numpy.array(im / 255.0 * 0.99) + 0.01)
+    # 得出结果
+    outputs = n.query(img)
+    label = numpy.argmax(outputs)
+    print("识别为" + str(label) + "，" + ("正确" if imgNum == int(label) else "错误"))
