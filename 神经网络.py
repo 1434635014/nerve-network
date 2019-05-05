@@ -54,7 +54,7 @@ class neuralNetwork:
         hidden_inputs = numpy.dot(self.wih, inputs)
         # 隐藏层输出节点（进行激活函数后）
         hidden_outputs = self.activation_function(hidden_inputs)
-        
+        0
         # 最终乘以权重输出的节点（进行激活函数前）
         final_inputs = numpy.dot(self.who, hidden_outputs)
         # 最终层输出节点（进行激活函数后）
